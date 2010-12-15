@@ -6,7 +6,6 @@
 # description:  Nginx is an HTTP(S) server, HTTP(S) reverse \
 #               proxy and IMAP/POP3 proxy server
 # processname: nginx
-# config:      /etc/nginx/nginx.conf
 # config:      /etc/sysconfig/nginx
 # pidfile:     /var/run/nginx.pid
 
@@ -19,10 +18,8 @@
 # Check that networking is up.
 [ "$NETWORKING" = "no" ] && exit 0
 
-nginx="/usr/sbin/nginx"
+nginx="/usr/local/nginx/sbin/nginx"
 prog=$(basename $nginx)
-
-NGINX_CONF_FILE="/etc/nginx/nginx.conf"
 
 [ -f /etc/sysconfig/nginx ] && . /etc/sysconfig/nginx
 
@@ -32,7 +29,7 @@ start() {
     [ -x $nginx ] || exit 5
     [ -f $NGINX_CONF_FILE ] || exit 6
     echo -n $"Starting $prog: "
-    daemon $nginx -c $NGINX_CONF_FILE
+    daemon $nginx
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
@@ -77,7 +74,7 @@ force_reload() {
 }
 
 configtest() {
-  $nginx -t -c $NGINX_CONF_FILE
+  $nginx -t
 }
 
 rh_status() {

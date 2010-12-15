@@ -60,27 +60,21 @@ else
 	echo -e "[$DO DONE $RS]"
 fi
 
-echo -ne "Checking for Nginx init script "
-if [ -f /etc/init.d/nginx ]; then
-	echo -e "[$OK OK $RS]"
-else
-	echo -e "[$DO NO $RS]"
-	cd $CURDIR
-	cp initrc-$DISTRO /etc/init.d/nginx
-	chmod 750 /etc/init.d/nginx
-	if [ $DISTRO == "debian" ]; then
-		update-rc.d nginx defaults
-	elif [ $DISTRO == "redhat" ]; then
-		chkconfig --add nginx && chkconfig nginx on
-	fi
-	E=$?
-	echo -ne "Creating Nginx init script "
-	if [ $E != 0 ]; then
-		echo -e "[$ER FAIL $RS]"
-		exit 1
-	fi
-	echo -e "[$DO DONE $RS]"
+cd $CURDIR
+cp initrc-$DISTRO /etc/init.d/nginx
+chmod 750 /etc/init.d/nginx
+if [ $DISTRO == "debian" ]; then
+	update-rc.d nginx defaults
+elif [ $DISTRO == "redhat" ]; then
+	chkconfig --add nginx && chkconfig nginx on
 fi
+E=$?
+echo -ne "Creating Nginx init script "
+if [ $E != 0 ]; then
+	echo -e "[$ER FAIL $RS]"
+	exit 1
+fi
+echo -e "[$DO DONE $RS]"
 
 echo -ne "Checking for mod_rpaf installed "
 if [ -f /usr/lib/apache/mod_rpaf-2.0.so ]; then
