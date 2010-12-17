@@ -7,7 +7,7 @@ NGCONFDIR=/usr/local/nginx/conf
 DAUSERDIR=/usr/local/directadmin/data/users
 
 add() {
-	if [ -z $domain ]; then
+	if [[ -z $user || -z $domain ]]; then
 		usage
 		exit 1
 	fi
@@ -71,9 +71,11 @@ add() {
 		proxy="proxy_pass http://$ip:8888;"
 	fi
 
+	resconf=$NGCONFDIR/vhost/$user-$domain.conf
+
 	sed -e s/ADDR/$ip/g -e s/DOMAIN/$domain/g -e s/ALIAS/"$alias"/g -e s/DOCROOT/"${docroot//\//\/}"/g \
 		-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy//\//\/}"/g -e s/SSL/"${sslconf//\//\/}"/g \
-		$NGCONFDIR/domain.conf > $NGCONFDIR/vhost/$domain.conf
+		$NGCONFDIR/domain.conf > $resconf
 
 	if [ -f $userdir/domains/$domain.subdomains ]; then
 		for sub in $(cat $userdir/domains/$domain.subdomains)
@@ -86,32 +88,57 @@ add() {
 			done
 			sed -e s/ADDR/$ip/g -e s/DOMAIN/$sub.$domain/g -e s/ALIAS/"$subalias"/g -e s/DOCROOT/"${subdocroot//\//\/}"/g \
 				-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy//\//\/}"/g -e s/SSL/"${sslconf//\//\/}"/g \
-				$NGCONFDIR/domain.conf >> $NGCONFDIR/vhost/$domain.conf
+				$NGCONFDIR/domain.conf >> $resconf
 		done
 	fi
 
 	for ptr in $pointer
 	do
 		sed -e s/DOMAIN/$domain/g -e s/POINTER/$ptr/g -e s/LISTEN/"$listen"/g \
-			$NGCONFDIR/pointer.conf >> $NGCONFDIR/vhost/$domain.conf
+			$NGCONFDIR/pointer.conf >> $resconf
 	done
 }
 
 del() {
-	exit
+	if [ -z $user ]; then
+		usage
+		exit 1
+	fi
+
+	if [ -n $domain ]; then
+		rm -rf $NGCONFDIR/vhost/$user-*.conf
+	else
+		rm -rf $NGCONFDIR/vhost/$user-$domain.conf
+	fi
+}
+
+build() {
+	mkdir -p $NGCONFDIR/vhost
+	rm -rf $NGCONFDIR/vhost/*
+
+	for user in $(ls -1 $DAUSERDIR)
+	do
+		if [ ! -d $DAUSERDIR/$user ]; then
+			continue
+		fi
+
+		for domain in $(cat $DAUSERDIR/$user/domains.list)
+		do
+			add $user $domain
+		done
+	done
 }
 
 usage() {
-	echo "Usage: $0 {add|del} user [domain]"
+	echo "Usage:"
+	echo "$0 build"
+	echo "$0 add user domain"
+	echo "$0 del user [domain]"
 }
-
-if [ -z $user ]; then
-	usage
-	exit 1
-fi
 
 case $cmd in
 	"add"	) add;;
 	"del"	) del;;
+	"build"	) build;;
 	*		) usage;;
 esac
