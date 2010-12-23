@@ -117,19 +117,26 @@ echo -ne "Copying new files "
 cd $CURDIR
 cp ng-httpd.sh /usr/local/nginx/sbin/
 chmod 755 /usr/local/nginx/sbin/ng-httpd.sh
+cp -f conf/* /usr/local/nginx/conf/
 /usr/local/nginx/sbin/ng-httpd.sh queue
-mkdir -p usr/local/directadmin/plugins/ng-httpd
+mkdir -p /usr/local/directadmin/plugins/ng-httpd
 cp -Rf plugin/* /usr/local/directadmin/plugins/ng-httpd/
 chown -R diradmin:diradmin /usr/local/directadmin/plugins/ng-httpd
 chmod 755 /usr/local/directadmin/plugins/ng-httpd/scripts/*.sh
 echo -e "[$DO DONE $RS]"
 
+(crontab -l | sed /ng-httpd/d; echo "* * * * * /usr/local/nginx/sbin/ng-httpd.sh queue") | crontab -
+E=$?
 echo -ne "Installing crontab "
-sed -i /ng-httpd/d /var/spool/cron/root
-echo "* * * * * /usr/local/nginx/sbin/ng-httpd.sh queue" >> /var/spool/cron/root
+if [ $E != 0 ]; then
+	echo -e "[$ER FAIL $RS]"
+	exit 1
+fi
 echo -e "[$DO DONE $RS]"
 
 echo -ne "Enabling nginx frontend "
+sed -i /nginx/d /usr/local/directadmin/data/admin/services.status
+echo "nginx=ON" >> /usr/local/directadmin/data/admin/services.status
 /usr/local/nginx/sbin/ng-httpd.sh enable
 if [ $? != 0 ]; then
 	echo -e "[$ER FAIL $RS]"

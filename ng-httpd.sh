@@ -167,7 +167,7 @@ build() {
 
 updateips() {
 	sed -i "s/:$EXTPORT/:$INTPORT/g" $APCONFDIR/ips.conf
-	ips=$(cat $DAROOTDIR/data/admin/ip.list | awk 'BEGIN {FS = "[ \t:]+"; ORS=" "} {print $1}')
+	ips=$(cat $DAROOTDIR/data/admin/ip.list | awk 'BEGIN {ORS=" "} {print $1}')
 	cat > $APCONFDIR/extra/httpd-rpaf.conf <<EOF
 LoadModule rpaf_module /usr/lib/apache/mod_rpaf-2.0.so
 RPAFenable On
