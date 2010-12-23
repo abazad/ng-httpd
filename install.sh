@@ -1,5 +1,5 @@
 #!/bin/bash
-CURDIR=$(dirname $0)
+CURDIR=$(cd $(dirname "$0"); pwd)
 NGLATEST="nginx-0.8.53"
 RPLATEST="mod_rpaf-0.6"
 OK='\033[01;32m'
@@ -102,24 +102,35 @@ else
 	echo -e "[$DO DONE $RS]"
 fi
 
-echo -ne "Updating mod_rpaf configuration "
-ips=$(ifconfig | grep Bcast | awk 'BEGIN {FS = "[ \t:]+"; ORS=" "} {print $4}')
+echo -ne "Enabling mod_rpaf "
 cd /etc/httpd/conf
-cat > extra/httpd-rpaf.conf <<EOF
-LoadModule rpaf_module /usr/lib/apache/mod_rpaf-2.0.so
-RPAFenable On
-RPAFsethostname On
-RPAFproxy_ips $ips
-RPAFheader X-Real-IP
-EOF
+touch extra/httpd-rpaf.conf
+sed -i /[rR][pP][aA][fF]/d httpd.conf
+echo "Include conf/extra/httpd-rpaf.conf" >> httpd.conf
 if [ $? != 0 ]; then
 	echo -e "[$ER FAIL $RS]"
 	exit 1
 fi
 echo -e "[$DO DONE $RS]"
-echo -ne "Enabling mod_rpaf "
-sed -i /[rR][pP][aA][fF]/d httpd.conf
-echo "Include conf/extra/httpd-rpaf.conf" >> httpd.conf
+
+echo -ne "Copying new files "
+cd $CURDIR
+cp ng-httpd.sh /usr/local/nginx/sbin/
+chmod 755 /usr/local/nginx/sbin/ng-httpd.sh
+/usr/local/nginx/sbin/ng-httpd.sh queue
+mkdir -p usr/local/directadmin/plugins/ng-httpd
+cp -Rf plugin/* /usr/local/directadmin/plugins/ng-httpd/
+chown -R diradmin:diradmin /usr/local/directadmin/plugins/ng-httpd
+chmod 755 /usr/local/directadmin/plugins/ng-httpd/scripts/*.sh
+echo -e "[$DO DONE $RS]"
+
+echo -ne "Installing crontab "
+sed -i /ng-httpd/d /var/spool/cron/root
+echo "* * * * * /usr/local/nginx/sbin/ng-httpd.sh queue" >> /var/spool/cron/root
+echo -e "[$DO DONE $RS]"
+
+echo -ne "Enabling nginx frontend "
+/usr/local/nginx/sbin/ng-httpd.sh enable
 if [ $? != 0 ]; then
 	echo -e "[$ER FAIL $RS]"
 	exit 1

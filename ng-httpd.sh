@@ -3,6 +3,7 @@ cmd=$1
 user=$2
 domain=$3
 
+CURDIR=$(cd $(dirname "$0"); pwd)
 APCONFDIR=/etc/httpd/conf
 NGCONFDIR=/usr/local/nginx/conf
 DAROOTDIR=/usr/local/directadmin
@@ -12,6 +13,10 @@ DAQUEUE=$DAROOTDIR/data/task.queue
 TEMPLATES="virtual_host virtual_host_sub virtual_host_secure virtual_host_secure_sub \
 	virtual_host2 virtual_host2_sub virtual_host2_secure virtual_host2_secure_sub \
 	ips_virtual_host redirect_virtual_host"
+SCRIPTS="domain_create_post domain_destroy_post domain_change_post \
+	subdomain_create_post subdomain_destroy_post \
+	domain_pointer_create_post domain_pointer_destroy_post \
+	user_destroy_post ipsconf_write_post"
 EXTPORT=80
 INTPORT=8888
 
@@ -39,7 +44,7 @@ add() {
 		ips=$(cat $userdir/domains/$domain.ip_list)
 	fi
 	ssl=$(grep -ic "ssl=on" $domconf)
-	pro=$(grep -ic "php=on|cgi=on" $domconf)
+	pro=$(egrep -ic "php=on|cgi=on" $domconf)
 
 	alias=""
 	pointer=""
@@ -65,7 +70,7 @@ add() {
 	done
 
 	sslconf=""
-	if [ $ssl > 0 ]; then
+	if [ $ssl -gt 0 ]; then
 		sslcert=$userdir/domains/$domain.cert
 		sslkey=$userdir/domains/$domain.key
 		if [ ! -f $sslcert ]; then
@@ -76,7 +81,7 @@ add() {
 	fi
 
 	proxy=""
-	if [ $pro > 0 ]; then
+	if [ $pro -gt 0 ]; then
 		proxy="proxy_pass http://$ip:8888;"
 	fi
 
@@ -106,6 +111,14 @@ add() {
 		sed -e s/DOMAIN/$domain/g -e s/POINTER/$ptr/g -e s/LISTEN/"$listen"/g \
 			$NGCONFDIR/pointer.conf >> $resconf
 	done
+
+	if [ $cmd == "add" ]; then
+		/etc/init.d/nginx restart > /dev/null
+		if [ $? != 0 ]; then
+			echo "Nginx restart failed"
+			exit 1
+		fi
+	fi
 }
 
 delete() {
@@ -118,6 +131,12 @@ delete() {
 		rm -rf $NGCONFDIR/vhost/$user-*.conf
 	else
 		rm -rf $NGCONFDIR/vhost/$user-$domain.conf
+	fi
+
+	/etc/init.d/nginx restart > /dev/null
+	if [ $? != 0 ]; then
+		echo "Nginx restart failed"
+		exit 1
 	fi
 }
 
@@ -136,6 +155,14 @@ build() {
 			add $user $domain
 		done
 	done
+
+	if [ $cmd == "build" ]; then
+		/etc/init.d/nginx restart > /dev/null
+		if [ $? != 0 ]; then
+			echo "Nginx restart failed"
+			exit 1
+		fi
+	fi
 }
 
 updateips() {
@@ -148,6 +175,13 @@ RPAFsethostname On
 RPAFproxy_ips $ips
 RPAFheader X-Real-IP
 EOF
+
+	echo "action=httpd&value=restart" >> $DAQUEUE
+	$DAROOTDIR/dataskq
+	if [ $? != 0 ]; then
+		echo "Apache restart failed"
+		exit 1
+	fi
 }
 
 enable() {
@@ -162,6 +196,27 @@ enable() {
 		sed -i "s/:$EXTPORT/:$INTPORT/g" custom/$tpl.conf
 	done
 
+	cd $DAROOTDIR/scripts/custom
+	for scr in $SCRIPTS
+	do
+		if [ ! -f $scr.sh ]; then
+			echo "#!/bin/bash" > $scr.sh
+		fi
+		sed -i /nginx/d $scr.sh
+		chown diradmin:diradmin $scr.sh
+		chmod 700 $scr.sh
+	done
+
+	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_create_post.sh
+	echo 'echo "delete $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_destroy_post.sh
+	echo 'echo "delete $username $domain\nadd $username $newdomain" >> /usr/local/nginx/sbin/queue' >> domain_change_post.sh
+	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> subdomain_create_post.sh
+	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> subdomain_destroy_post.sh
+	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_pointer_create_post.sh
+	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_pointer_destroy_post.sh
+	echo 'echo "delete $username" >> /usr/local/nginx/sbin/queue' >> user_destroy_post.sh
+	echo 'echo "updateips" >> /usr/local/nginx/sbin/queue' >> ipsconf_write_post.sh
+
 	echo "action=rewrite&value=ips" >> $DAQUEUE
 	echo "action=rewrite&value=httpd" >> $DAQUEUE
 	$DAROOTDIR/dataskq
@@ -170,15 +225,11 @@ enable() {
 		exit 1
 	fi
 
-	updateips
 	sed -i -e "s/$EXTPORT/$INTPORT/g" -e "/httpd-ssl/ s/^\s*#*\s*/#/" \
 		-e "/httpd-rpaf/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
-	echo "action=httpd&value=restart" >> $DAQUEUE
-	$DAROOTDIR/dataskq
-	if [ $? != 0 ]; then
-		echo "Apache restart failed"
-		exit 1
-	fi
+
+	updateips
+	build
 
 	sed -i "s/nginx=OFF/nginx=ON/" $DAROOTDIR/data/admin/services.status
 	/etc/init.d/nginx start > /dev/null
@@ -207,6 +258,14 @@ disable() {
 		done
 	fi
 
+	cd $DAROOTDIR/scripts/custom
+	for scr in $SCRIPTS
+	do
+		if [ -f $scr.sh ]; then
+			sed -i /nginx/d $scr.sh
+		fi
+	done
+
 	sed -i -e "s/$INTPORT/$EXTPORT/g" -e "/httpd-ssl/ s/^\s*#*\s*//" \
 		-e "/httpd-rpaf/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
 	echo "action=rewrite&value=ips" >> $DAQUEUE
@@ -220,7 +279,7 @@ disable() {
 }
 
 queue() {
-	cd $(dirname $0)
+	cd $CURDIR
 	if [ ! -f queue ]; then
 		touch queue
 		chgrp diradmin queue
