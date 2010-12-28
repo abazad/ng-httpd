@@ -4,6 +4,7 @@ user=$2
 domain=$3
 
 CURDIR=$(cd $(dirname "$0"); pwd)
+SUSPDIR=/home/admin/domains/suspended
 APCONFDIR=/etc/httpd/conf
 NGCONFDIR=/usr/local/nginx/conf
 DAROOTDIR=/usr/local/directadmin
@@ -15,12 +16,18 @@ TEMPLATES="virtual_host virtual_host_sub virtual_host_secure virtual_host_secure
 	ips_virtual_host redirect_virtual_host"
 SCRIPTS="domain_create_post domain_destroy_post domain_change_post \
 	subdomain_create_post subdomain_destroy_post \
-	domain_pointer_create_post domain_pointer_destroy_post \
-	user_destroy_post ipsconf_write_post"
+	domain_pointer_create_post domain_pointer_destroy_post ssl_save_post \
+	user_suspend_post user_activate_post user_modify_post user_destroy_post \
+	ip_change_post ipsconf_write_post"
 EXTPORT=80
 INTPORT=8888
+EXTPORT_SSL=443
+INTPORT_SSL=8889
 
 add() {
+	user=$1
+	domain=$2
+
 	if [[ -z $user || -z $domain ]]; then
 		usage
 		exit 1
@@ -38,13 +45,14 @@ add() {
 		exit 1
 	fi
 
-	ip=$(grep "ip=" $domconf | cut -d= -f2)
+	ip=$(grep "ip=" $domconf | cut -d= -f2 | awk '/:/ {$0="["$0"]"} {print}')
 	ips=$ip
 	if [ -f $userdir/domains/$domain.ip_list ]; then
-		ips=$(cat $userdir/domains/$domain.ip_list)
+		ips=$(awk '/:/ {$0="["$0"]"} {print}' $userdir/domains/$domain.ip_list)
 	fi
 	ssl=$(grep -ic "ssl=on" $domconf)
 	pro=$(egrep -ic "php=on|cgi=on" $domconf)
+	susp=$(grep -ic "suspended=yes" $domconf)
 
 	alias=""
 	pointer=""
@@ -62,6 +70,11 @@ add() {
 	fi
 
 	docroot=/home/$user/domains/$domain/public_html
+	docroot_ssl=/home/$user/domains/$domain/private_html
+	if [ $susp -gt 0 ]; then
+		docroot=$SUSPDIR
+		docroot_ssl=$SUSPDIR
+	fi
 
 	listen=""
 	for ipp in $ips
@@ -71,9 +84,9 @@ add() {
 
 	sslconf=""
 	if [ $ssl -gt 0 ]; then
-		sslcert=$userdir/domains/$domain.cert
-		sslkey=$userdir/domains/$domain.key
-		if [ ! -f $sslcert ]; then
+		sslcert=$(grep -i "SSLCertificateFile=" $domconf | cut -d= -f2)
+		sslkey=$(grep -i "SSLCertificateKeyFile=" $domconf | cut -d= -f2)
+		if [ -z $sslcert ]; then
 			sslcert=$(grep "apachecert=" /usr/local/directadmin/conf/directadmin.conf | cut -d= -f2)
 			sslkey=$(grep "apachekey=" /usr/local/directadmin/conf/directadmin.conf | cut -d= -f2)
 		fi
@@ -82,12 +95,14 @@ add() {
 
 	proxy=""
 	if [ $pro -gt 0 ]; then
-		proxy="proxy_pass http://$ip:8888;"
+		proxy="proxy_pass \$scheme://$ip:\$port;"
 	fi
 
 	resconf=$NGCONFDIR/vhost/$user-$domain.conf
 
-	sed -e s/ADDR/$ip/g -e s/DOMAIN/$domain/g -e s/ALIAS/"$alias"/g -e s/DOCROOT/"${docroot//\//\/}"/g \
+	sed -e s/ADDR/$ip/g -e s/PORT_SSL/$INTPORT_SSL/g -e s/PORT/$INTPORT/g \
+		-e s/DOMAIN/$domain/g -e s/DOMLOG/$domain/g -e s/ALIAS/"$alias"/g \
+		-e s/DOCROOT_SSL/"${docroot_ssl//\//\/}"/g -e s/DOCROOT/"${docroot//\//\/}"/g \
 		-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy//\//\/}"/g -e s/SSL/"${sslconf//\//\/}"/g \
 		$NGCONFDIR/domain.conf > $resconf
 
@@ -95,12 +110,16 @@ add() {
 		for sub in $(cat $userdir/domains/$domain.subdomains)
 		do
 			subdocroot=$docroot/$sub
+			subdocroot_ssl=$sdocroot/$sub
 			subalias=""
 			for als in $alias
 			do
 				subalias="$subalias .$sub$als"
 			done
-			sed -e s/ADDR/$ip/g -e s/DOMAIN/$sub.$domain/g -e s/ALIAS/"$subalias"/g -e s/DOCROOT/"${subdocroot//\//\/}"/g \
+
+			sed -e s/ADDR/$ip/g -e s/PORT_SSL/$INTPORT_SSL/g -e s/PORT/$INTPORT/g \
+				-e s/DOMAIN/$sub.$domain/g -e s/DOMLOG/$domain.$sub/g -e s/ALIAS/"$subalias"/g \
+				-e s/DOCROOT_SSL/"${subdocroot_ssl//\//\/}"/g -e s/DOCROOT/"${subdocroot//\//\/}"/g \
 				-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy//\//\/}"/g -e s/SSL/"${sslconf//\//\/}"/g \
 				$NGCONFDIR/domain.conf >> $resconf
 		done
@@ -122,12 +141,15 @@ add() {
 }
 
 delete() {
+	user=$1
+	domain=$2
+
 	if [ -z $user ]; then
 		usage
 		exit 1
 	fi
 
-	if [ -n $domain ]; then
+	if [ -z $domain ]; then
 		rm -rf $NGCONFDIR/vhost/$user-*.conf
 	else
 		rm -rf $NGCONFDIR/vhost/$user-$domain.conf
@@ -141,10 +163,18 @@ delete() {
 }
 
 build() {
-	mkdir -p $NGCONFDIR/vhost
-	rm -rf $NGCONFDIR/vhost/*
+	user=$1
 
-	for user in $(ls -1 $DAUSERDIR)
+	mkdir -p $NGCONFDIR/vhost
+	if [ -z $user ]; then
+		rm -rf $NGCONFDIR/vhost/*
+		userlist=$(ls -1 $DAUSERDIR)
+	else
+		delete $user
+		userlist=$user
+	fi
+
+	for user in $userlist
 	do
 		if [ ! -d $DAUSERDIR/$user ]; then
 			continue
@@ -166,8 +196,8 @@ build() {
 }
 
 updateips() {
-	sed -i "s/:$EXTPORT/:$INTPORT/g" $APCONFDIR/ips.conf
-	ips=$(cat $DAROOTDIR/data/admin/ip.list | awk 'BEGIN {ORS=" "} {print $1}')
+	sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g $APCONFDIR/ips.conf
+	ips=$(cat $DAROOTDIR/data/admin/ip.list | awk 'BEGIN {ORS=" "} /:/ {$1="["$1"]"} {print $1}')
 	cat > $APCONFDIR/extra/httpd-rpaf.conf <<EOF
 LoadModule rpaf_module /usr/lib/apache/mod_rpaf-2.0.so
 RPAFenable On
@@ -193,7 +223,7 @@ enable() {
 		if [ ! -f custom/$tpl.conf ]; then
 			cp $tpl.conf custom/
 		fi
-		sed -i "s/:$EXTPORT/:$INTPORT/g" custom/$tpl.conf
+		sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g custom/$tpl.conf
 	done
 
 	cd $DAROOTDIR/scripts/custom
@@ -214,7 +244,12 @@ enable() {
 	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> subdomain_destroy_post.sh
 	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_pointer_create_post.sh
 	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_pointer_destroy_post.sh
+	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> ssl_save_post.sh
+	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> user_suspend_post.sh
+	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> user_activate_post.sh
+	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> user_modify_post.sh
 	echo 'echo "delete $username" >> /usr/local/nginx/sbin/queue' >> user_destroy_post.sh
+	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> ip_change_post.sh
 	echo 'echo "updateips" >> /usr/local/nginx/sbin/queue' >> ipsconf_write_post.sh
 
 	echo "action=rewrite&value=ips" >> $DAQUEUE
@@ -225,8 +260,8 @@ enable() {
 		exit 1
 	fi
 
-	sed -i -e "s/$EXTPORT/$INTPORT/g" -e "/httpd-ssl/ s/^\s*#*\s*/#/" \
-		-e "/httpd-rpaf/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
+	sed -i -e s/$EXTPORT/$INTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
+	sed -i s/$EXTPORT_SSL/$INTPORT_SSL/g $APCONFDIR/extra/httpd-ssl.conf
 
 	updateips
 	build
@@ -253,7 +288,7 @@ disable() {
 		for tpl in $TEMPLATES
 		do
 			if [ -f $tpl.conf ]; then
-				sed -i "s/:$INTPORT/:$EXTPORT/g" $tpl.conf
+				sed -i -e s/:$INTPORT/:$EXTPORT/g -e s/:$INTPORT_SSL/:$EXTPORT_SSL/g $tpl.conf
 			fi
 		done
 	fi
@@ -266,8 +301,9 @@ disable() {
 		fi
 	done
 
-	sed -i -e "s/$INTPORT/$EXTPORT/g" -e "/httpd-ssl/ s/^\s*#*\s*//" \
-		-e "/httpd-rpaf/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
+	sed -i -e s/$INTPORT/$EXTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
+	sed -i s/$INTPORT_SSL/$EXTPORT_SSL/g $APCONFDIR/extra/httpd-ssl.conf
+
 	echo "action=rewrite&value=ips" >> $DAQUEUE
 	echo "action=rewrite&value=httpd" >> $DAQUEUE
 	echo "action=httpd&value=restart" >> $DAQUEUE
@@ -299,13 +335,14 @@ usage() {
 	echo "Usage:"
 	echo "$0 add user domain"
 	echo "$0 delete user [domain]"
-	echo "$0 (build|enable|disable|updateips|queue)"
+	echo "$0 build [user]"
+	echo "$0 (enable|disable|updateips|queue)"
 }
 
 case $cmd in
-	"add"		) add;;
-	"delete"	) delete;;
-	"build"		) build;;
+	"add"		) add $user $domain;;
+	"delete"	) delete $user $domain;;
+	"build"		) build $user;;
 	"enable"	) enable;;
 	"disable"	) disable;;
 	"updateips"	) updateips;;
