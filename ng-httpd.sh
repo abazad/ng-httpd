@@ -4,7 +4,6 @@ user=$2
 domain=$3
 
 CURDIR=$(cd $(dirname "$0"); pwd)
-SUSPDIR=/home/admin/domains/suspended
 APCONFDIR=/etc/httpd/conf
 NGCONFDIR=/usr/local/nginx/conf
 DAROOTDIR=/usr/local/directadmin
@@ -52,7 +51,6 @@ add() {
 	fi
 	ssl=$(grep -ic "ssl=on" $domconf)
 	pro=$(egrep -ic "php=on|cgi=on" $domconf)
-	susp=$(grep -ic "suspended=yes" $domconf)
 
 	alias=""
 	pointer=""
@@ -69,11 +67,11 @@ add() {
 		done
 	fi
 
-	docroot=/home/$user/domains/$domain/public_html
-	docroot_ssl=/home/$user/domains/$domain/private_html
-	if [ $susp -gt 0 ]; then
-		docroot=$SUSPDIR
-		docroot_ssl=$SUSPDIR
+	docroot=$(egrep -i "^DocumentRoot=" $domconf | cut -d= -f2)
+	docroot_ssl=$(egrep -i "^SecureDocumentRoot=" $domconf | cut -d= -f2)
+	if [ -z "$docroot" ]; then
+		docroot=/home/$user/domains/$domain/public_html
+		docroot_ssl=/home/$user/domains/$domain/private_html
 	fi
 
 	listen=""
@@ -86,7 +84,7 @@ add() {
 	if [ $ssl -gt 0 ]; then
 		sslcert=$(grep -i "SSLCertificateFile=" $domconf | cut -d= -f2)
 		sslkey=$(grep -i "SSLCertificateKeyFile=" $domconf | cut -d= -f2)
-		if [ -z $sslcert ]; then
+		if [ -z "$sslcert" ]; then
 			sslcert=$(grep "apachecert=" /usr/local/directadmin/conf/directadmin.conf | cut -d= -f2)
 			sslkey=$(grep "apachekey=" /usr/local/directadmin/conf/directadmin.conf | cut -d= -f2)
 		fi
@@ -110,7 +108,7 @@ add() {
 		for sub in $(cat $userdir/domains/$domain.subdomains)
 		do
 			subdocroot=$docroot/$sub
-			subdocroot_ssl=$sdocroot/$sub
+			subdocroot_ssl=$docroot_ssl/$sub
 			subalias=""
 			for als in $alias
 			do
