@@ -244,7 +244,7 @@ enable() {
 	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> subdomain_destroy_post.sh
 	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_pointer_create_post.sh
 	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> domain_pointer_destroy_post.sh
-	echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> ssl_save_post.sh
+	#echo 'echo "add $username $domain" >> /usr/local/nginx/sbin/queue' >> ssl_save_post.sh
 	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> user_suspend_post.sh
 	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> user_activate_post.sh
 	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> user_modify_post.sh
@@ -261,6 +261,9 @@ EOF
 $MARKER_START
 if [ "\$command" = "/CMD_DOMAIN" ] && ([ "\$action" = "modify" ] || [ -n "\$suspend" ]); then
 	echo "build \$username" >> /usr/local/nginx/sbin/queue
+fi
+if [ "\$command" = "/CMD_SSL" ] && [ "\$action" = "save" ]; then
+	echo "add \$username \$domain" >> /usr/local/nginx/sbin/queue
 fi
 $MARKER_END
 EOF
