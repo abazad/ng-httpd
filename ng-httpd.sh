@@ -275,7 +275,7 @@ EOF
 
 	sed -i -e s/$EXTPORT/$INTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
 	sed -i s/$EXTPORT_SSL/$INTPORT_SSL/g $APCONFDIR/extra/httpd-ssl.conf
-	sed -ir 's/KeepAlive\s\+On/KeepAlive Off/gi' $APCONFDIR/extra/httpd-default.conf
+	sed -i 's/KeepAlive\s\+On/KeepAlive Off/Ig' $APCONFDIR/extra/httpd-default.conf
 
 	updateips
 	build
@@ -317,7 +317,7 @@ disable() {
 
 	sed -i -e s/$INTPORT/$EXTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
 	sed -i s/$INTPORT_SSL/$EXTPORT_SSL/g $APCONFDIR/extra/httpd-ssl.conf
-	sed -ir 's/KeepAlive\s\+Off/KeepAlive On/gi' $APCONFDIR/extra/httpd-default.conf
+	sed -i 's/KeepAlive\s\+Off/KeepAlive On/Ig' $APCONFDIR/extra/httpd-default.conf
 
 	echo "action=rewrite&value=ips" >> $DAQUEUE
 	echo "action=rewrite&value=httpd" >> $DAQUEUE

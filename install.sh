@@ -105,7 +105,7 @@ fi
 echo -ne "Enabling mod_rpaf "
 cd /etc/httpd/conf
 touch extra/httpd-rpaf.conf
-sed -i /[rR][pP][aA][fF]/d httpd.conf
+sed -i /rpaf/Id httpd.conf
 echo "Include conf/extra/httpd-rpaf.conf" >> httpd.conf
 if [ $? != 0 ]; then
 	echo -e "[$ER FAIL $RS]"
