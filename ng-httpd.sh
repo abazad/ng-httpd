@@ -95,7 +95,7 @@ add() {
 
 	proxy=""
 	if [ $pro -gt 0 ]; then
-		proxy="proxy_pass http://$ip:\$port;"
+		proxy="proxy_pass http://$ip:\$iport;"
 	fi
 
 	resconf=$NGCONFDIR/vhost/$user-$domain.conf
