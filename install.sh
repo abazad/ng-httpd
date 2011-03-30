@@ -1,7 +1,6 @@
 #!/bin/bash
 CURDIR=$(cd $(dirname "$0"); pwd)
 NGLATEST="nginx-0.8.53"
-RPLATEST="mod_rpaf-0.6"
 OK='\033[01;32m'
 DO='\033[01;35m'
 ER='\033[01;31m'
@@ -76,25 +75,15 @@ if [ $E != 0 ]; then
 fi
 echo -e "[$DO DONE $RS]"
 
-echo -ne "Checking for mod_rpaf installed "
-if [ -f /usr/lib/apache/mod_rpaf-2.0.so ]; then
+echo -ne "Checking for mod_realip2 installed "
+if [ -f /usr/lib/apache/mod_realip2.so ]; then
 	echo -e "[$OK OK $RS]"
 else
 	echo -e "[$DO NO $RS]"
-	echo -ne "Downloading mod_rpaf source "
-	cd /usr/local/src
-	rm -rf mod_rpaf*
-	wget -q -t 1 -T 5 http://stderr.net/apache/rpaf/download/$RPLATEST.tar.gz
-	if [ $? != 0 ]; then
-		echo -e "[$ER FAIL $RS]"
-		exit 1
-	fi
-	echo -e "[$DO DONE $RS]"
-	tar -xzf $RPLATEST.tar.gz
-	cd $RPLATEST
-	apxs -ci mod_rpaf-2.0.c
+	cd $CURDIR/dist
+	apxs -ci mod_realip2.c
 	E=$?
-	echo -ne "Installing mod_rpaf "
+	echo -ne "Installing mod_realip2 "
 	if [ $E != 0 ]; then
 		echo -e "[$ER FAIL $RS]"
 		exit 1
@@ -102,11 +91,11 @@ else
 	echo -e "[$DO DONE $RS]"
 fi
 
-echo -ne "Enabling mod_rpaf "
+echo -ne "Enabling mod_realip2 "
 cd /etc/httpd/conf
-touch extra/httpd-rpaf.conf
-sed -i /rpaf/Id httpd.conf
-echo "Include conf/extra/httpd-rpaf.conf" >> httpd.conf
+touch extra/httpd-realip2.conf
+sed -i -e /rpaf/Id -e /realip/Id httpd.conf
+echo "Include conf/extra/httpd-realip2.conf" >> httpd.conf
 if [ $? != 0 ]; then
 	echo -e "[$ER FAIL $RS]"
 	exit 1

@@ -198,12 +198,11 @@ build() {
 updateips() {
 	sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g $APCONFDIR/ips.conf
 	ips=$(cat $DAROOTDIR/data/admin/ip.list | awk 'BEGIN {ORS=" "} /:/ {$1="["$1"]"} {print $1}')
-	cat > $APCONFDIR/extra/httpd-rpaf.conf <<EOF
-LoadModule rpaf_module /usr/lib/apache/mod_rpaf-2.0.so
-RPAFenable On
-RPAFsethostname On
-RPAFproxy_ips $ips
-RPAFheader X-Real-IP
+	cat > $APCONFDIR/extra/httpd-realip2.conf <<EOF
+LoadModule realip2_module /usr/lib/apache/mod_realip2.so
+RealIP On
+RealIPProxy $ips
+RealIPHeader X-Real-IP
 EOF
 
 	echo "action=httpd&value=restart" >> $DAQUEUE
@@ -277,7 +276,7 @@ EOF
 		exit 1
 	fi
 
-	sed -i -e s/$EXTPORT/$INTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
+	sed -i -e s/$EXTPORT/$INTPORT/g -e "/httpd-realip2/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
 	sed -i -e s/$EXTPORT_SSL/$INTPORT_SSL/g -e "/SSLEngine/I s/^\s*#*\s*/#/" $APCONFDIR/extra/httpd-ssl.conf
 	sed -i 's/KeepAlive\s\+On/KeepAlive Off/Ig' $APCONFDIR/extra/httpd-default.conf
 
@@ -320,7 +319,7 @@ disable() {
 		fi
 	done
 
-	sed -i -e s/$INTPORT/$EXTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
+	sed -i -e s/$INTPORT/$EXTPORT/g -e "/httpd-realip2/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
 	sed -i -e s/$INTPORT_SSL/$EXTPORT_SSL/g -e "/SSLEngine/I s/^\s*#*\s*//" $APCONFDIR/extra/httpd-ssl.conf
 	sed -i 's/KeepAlive\s\+Off/KeepAlive On/Ig' $APCONFDIR/extra/httpd-default.conf
 
