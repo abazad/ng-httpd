@@ -95,7 +95,7 @@ add() {
 
 	proxy=""
 	if [ $pro -gt 0 ]; then
-		proxy="proxy_pass \$scheme://$ip:\$port;"
+		proxy="proxy_pass http://$ip:\$port;"
 	fi
 
 	resconf=$NGCONFDIR/vhost/$user-$domain.conf
@@ -223,7 +223,8 @@ enable() {
 		if [ ! -f custom/$tpl.conf ]; then
 			cp $tpl.conf custom/
 		fi
-		sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g custom/$tpl.conf
+		sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g \
+			-e "/SSLEngine/I s/^\s*#*\s*/#/" custom/$tpl.conf
 	done
 
 	cd $DAROOTDIR/scripts/custom
@@ -254,7 +255,7 @@ enable() {
 
 	cat >> user_httpd_write_post.sh <<EOF
 $MARKER_START
-sed -i s/:$EXTPORT/:$INTPORT/g $DAUSERDIR/\$username/httpd.conf
+sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g $DAUSERDIR/\$username/httpd.conf
 $MARKER_END
 EOF
 	cat >> all_post.sh <<EOF
@@ -277,7 +278,7 @@ EOF
 	fi
 
 	sed -i -e s/$EXTPORT/$INTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
-	sed -i s/$EXTPORT_SSL/$INTPORT_SSL/g $APCONFDIR/extra/httpd-ssl.conf
+	sed -i -e s/$EXTPORT_SSL/$INTPORT_SSL/g -e "/SSLEngine/I s/^\s*#*\s*/#/" $APCONFDIR/extra/httpd-ssl.conf
 	sed -i 's/KeepAlive\s\+On/KeepAlive Off/Ig' $APCONFDIR/extra/httpd-default.conf
 
 	updateips
@@ -305,7 +306,8 @@ disable() {
 		for tpl in $TEMPLATES
 		do
 			if [ -f $tpl.conf ]; then
-				sed -i -e s/:$INTPORT/:$EXTPORT/g -e s/:$INTPORT_SSL/:$EXTPORT_SSL/g $tpl.conf
+				sed -i -e s/:$INTPORT/:$EXTPORT/g -e s/:$INTPORT_SSL/:$EXTPORT_SSL/g \
+					-e "/SSLEngine/I s/^\s*#*\s*//" $tpl.conf
 			fi
 		done
 	fi
@@ -319,7 +321,7 @@ disable() {
 	done
 
 	sed -i -e s/$INTPORT/$EXTPORT/g -e "/httpd-rpaf/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
-	sed -i s/$INTPORT_SSL/$EXTPORT_SSL/g $APCONFDIR/extra/httpd-ssl.conf
+	sed -i -e s/$INTPORT_SSL/$EXTPORT_SSL/g -e "/SSLEngine/I s/^\s*#*\s*//" $APCONFDIR/extra/httpd-ssl.conf
 	sed -i 's/KeepAlive\s\+Off/KeepAlive On/Ig' $APCONFDIR/extra/httpd-default.conf
 
 	echo "action=rewrite&value=ips" >> $DAQUEUE
