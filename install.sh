@@ -91,11 +91,10 @@ else
 	echo -e "[$DO DONE $RS]"
 fi
 
-echo -ne "Enabling mod_realip2 "
+echo -ne "Enabling extra config "
 cd /etc/httpd/conf
-touch extra/httpd-realip2.conf
-sed -i -e /rpaf/Id -e /realip/Id httpd.conf
-echo "Include conf/extra/httpd-realip2.conf" >> httpd.conf
+sed -i -e /rpaf/Id -e /realip/Id -e /httpd-ng/d httpd.conf
+echo "Include conf/extra/httpd-ng.conf" >> httpd.conf
 if [ $? != 0 ]; then
 	echo -e "[$ER FAIL $RS]"
 	exit 1
@@ -104,7 +103,8 @@ echo -e "[$DO DONE $RS]"
 
 echo -ne "Copying new files "
 cd $CURDIR
-cp ng-httpd.sh /usr/local/nginx/sbin/
+cp -f httpd-ng.conf /etc/httpd/conf/extra/
+cp -f ng-httpd.sh /usr/local/nginx/sbin/
 chmod 755 /usr/local/nginx/sbin/ng-httpd.sh
 cp -f conf/* /usr/local/nginx/conf/
 /usr/local/nginx/sbin/ng-httpd.sh queue

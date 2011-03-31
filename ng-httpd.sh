@@ -198,12 +198,8 @@ build() {
 updateips() {
 	sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g $APCONFDIR/ips.conf
 	ips=$(cat $DAROOTDIR/data/admin/ip.list | awk 'BEGIN {ORS=" "} /:/ {$1="["$1"]"} {print $1}')
-	cat > $APCONFDIR/extra/httpd-realip2.conf <<EOF
-LoadModule realip2_module /usr/lib/apache/mod_realip2.so
-RealIP On
-RealIPProxy $ips
-RealIPHeader X-Real-IP
-EOF
+	sed -i "/RealIPProxy/I c\
+RealIPProxy $ips" $APCONFDIR/extra/httpd-ng.conf
 
 	echo "action=httpd&value=restart" >> $DAQUEUE
 	$DAROOTDIR/dataskq
@@ -284,7 +280,7 @@ EOF
 	build
 
 	sed -i "s/nginx=OFF/nginx=ON/" $DAROOTDIR/data/admin/services.status
-	/etc/init.d/nginx start > /dev/null
+	/etc/init.d/nginx restart > /dev/null
 	if [ $? != 0 ]; then
 		echo "Nginx start failed"
 		exit 1
