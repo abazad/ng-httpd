@@ -107,6 +107,7 @@ cp -f httpd-ng.conf /etc/httpd/conf/extra/
 cp -f ng-httpd.sh /usr/local/nginx/sbin/
 chmod 755 /usr/local/nginx/sbin/ng-httpd.sh
 cp -f conf/* /usr/local/nginx/conf/
+mkdir -p /usr/local/nginx/conf/extra
 /usr/local/nginx/sbin/ng-httpd.sh queue
 mkdir -p /usr/local/directadmin/plugins/ng-httpd
 cp -Rf plugin/* /usr/local/directadmin/plugins/ng-httpd/
@@ -123,11 +124,12 @@ if [ $E != 0 ]; then
 fi
 echo -e "[$DO DONE $RS]"
 
+/usr/local/nginx/sbin/ng-httpd.sh enable
+E=$?
 echo -ne "Enabling nginx frontend "
 sed -i /nginx/d /usr/local/directadmin/data/admin/services.status
 echo "nginx=ON" >> /usr/local/directadmin/data/admin/services.status
-/usr/local/nginx/sbin/ng-httpd.sh enable
-if [ $? != 0 ]; then
+if [ $E != 0 ]; then
 	echo -e "[$ER FAIL $RS]"
 	exit 1
 fi

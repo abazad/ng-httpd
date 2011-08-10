@@ -201,11 +201,26 @@ updateips() {
 	sed -i "/RealIPProxy/I c\
 RealIPProxy $ips" $APCONFDIR/extra/httpd-ng.conf
 
+	default=$NGCONFDIR/extra/default.conf
+	echo -n "" > $default
+	for ip in $ips
+	do
+		sed s/ADDR/$ip/g $NGCONFDIR/default.conf >> $default
+	done
+
 	echo "action=httpd&value=restart" >> $DAQUEUE
 	$DAROOTDIR/dataskq
 	if [ $? != 0 ]; then
 		echo "Apache restart failed"
 		exit 1
+	fi
+
+	if [ $cmd == "updateips" ]; then
+		/etc/init.d/nginx restart > /dev/null
+		if [ $? != 0 ]; then
+			echo "Nginx restart failed"
+			exit 1
+		fi
 	fi
 }
 
