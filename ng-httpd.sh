@@ -234,7 +234,7 @@ enable() {
 			cp $tpl.conf custom/
 		fi
 		sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g \
-			-e "/SSLEngine/I s/^\s*#*\s*/#/" custom/$tpl.conf
+			-e "/CustomLog/I s/^\s*#*\s*/#/" -e "/SSLEngine/I s/^\s*#*\s*/#/" custom/$tpl.conf
 	done
 
 	cd $DAROOTDIR/scripts/custom
@@ -317,7 +317,7 @@ disable() {
 		do
 			if [ -f $tpl.conf ]; then
 				sed -i -e s/:$INTPORT/:$EXTPORT/g -e s/:$INTPORT_SSL/:$EXTPORT_SSL/g \
-					-e "/SSLEngine/I s/^\s*#*\s*//" $tpl.conf
+					-e "/CustomLog/I s/^\s*#*\s*//" -e "/SSLEngine/I s/^\s*#*\s*//" $tpl.conf
 			fi
 		done
 	fi
