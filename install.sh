@@ -1,6 +1,6 @@
 #!/bin/bash
 CURDIR=$(cd $(dirname "$0"); pwd)
-NGLATEST="nginx-0.8.53"
+NGLATEST="nginx-1.0.5"
 OK='\033[01;32m'
 DO='\033[01;35m'
 ER='\033[01;31m'
