@@ -1,6 +1,6 @@
 #!/bin/bash
 CURDIR=$(cd $(dirname "$0"); pwd)
-NGLATEST="nginx-1.0.5"
+NGLATEST="nginx-1.0.9"
 OK='\033[01;32m'
 DO='\033[01;35m'
 ER='\033[01;31m'
@@ -33,7 +33,7 @@ else
 	echo -ne "Downloading Nginx source "
 	cd /usr/local/src
 	rm -rf nginx*
-	wget -q -t 1 -T 5 http://sysoev.ru/nginx/$NGLATEST.tar.gz
+	wget -q -t 1 -T 5 http://nginx.org/download/nginx-$NGLATEST.tar.gz
 	if [ $? != 0 ]; then
 		echo -e "[$ER FAIL $RS]"
 		exit 1
