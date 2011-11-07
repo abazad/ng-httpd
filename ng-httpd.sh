@@ -155,10 +155,12 @@ delete() {
 		rm -rf $NGCONFDIR/vhost/$user-$domain.conf
 	fi
 
-	/etc/init.d/nginx restart > /dev/null
-	if [ $? != 0 ]; then
-		echo "Nginx restart failed"
-		exit 1
+	if [ $cmd == "delete" ]; then
+		/etc/init.d/nginx restart > /dev/null
+		if [ $? != 0 ]; then
+			echo "Nginx restart failed"
+			exit 1
+		fi
 	fi
 }
 
