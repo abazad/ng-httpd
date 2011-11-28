@@ -333,7 +333,7 @@ queue() {
 
 	while read line
 	do
-		$($0 $line)
+		$line
 	done < queue
 
 	echo -n "" > queue
