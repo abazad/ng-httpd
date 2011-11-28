@@ -1,8 +1,4 @@
 #!/bin/bash
-cmd=$1
-user=$2
-domain=$3
-
 CURDIR=$(cd $(dirname "$0"); pwd)
 APCONFDIR=/etc/httpd/conf
 NGCONFDIR=/usr/local/nginx/conf
@@ -24,6 +20,8 @@ EXTPORT=80
 INTPORT=8888
 EXTPORT_SSL=443
 INTPORT_SSL=8889
+
+reload=false
 
 add() {
 	user=$1
@@ -131,13 +129,7 @@ add() {
 			$NGCONFDIR/pointer.conf >> $resconf
 	done
 
-	if [ $cmd == "add" ]; then
-		/etc/init.d/nginx restart > /dev/null
-		if [ $? != 0 ]; then
-			echo "Nginx restart failed"
-			exit 1
-		fi
-	fi
+	reload=true
 }
 
 delete() {
@@ -155,13 +147,7 @@ delete() {
 		rm -rf $NGCONFDIR/vhost/$user-$domain.conf
 	fi
 
-	if [ $cmd == "delete" ]; then
-		/etc/init.d/nginx restart > /dev/null
-		if [ $? != 0 ]; then
-			echo "Nginx restart failed"
-			exit 1
-		fi
-	fi
+	reload=true
 }
 
 build() {
@@ -188,13 +174,7 @@ build() {
 		done
 	done
 
-	if [ $cmd == "build" ]; then
-		/etc/init.d/nginx restart > /dev/null
-		if [ $? != 0 ]; then
-			echo "Nginx restart failed"
-			exit 1
-		fi
-	fi
+	reload=true
 }
 
 updateips() {
@@ -217,13 +197,7 @@ RealIPProxy $ips" $APCONFDIR/extra/httpd-ng.conf
 		exit 1
 	fi
 
-	if [ $cmd == "updateips" ]; then
-		/etc/init.d/nginx restart > /dev/null
-		if [ $? != 0 ]; then
-			echo "Nginx restart failed"
-			exit 1
-		fi
-	fi
+	reload=true
 }
 
 enable() {
@@ -295,6 +269,8 @@ EOF
 
 	updateips
 	build
+
+	reload=false
 
 	sed -i "s/nginx=OFF/nginx=ON/" $DAROOTDIR/data/admin/services.status
 	/etc/init.d/nginx restart > /dev/null
@@ -371,6 +347,11 @@ usage() {
 	echo "$0 (enable|disable|updateips|queue)"
 }
 
+#main
+cmd=$1
+user=$2
+domain=$3
+
 case $cmd in
 	"add"		) add $user $domain;;
 	"delete"	) delete $user $domain;;
@@ -381,3 +362,11 @@ case $cmd in
 	"queue"		) queue;;
 	*			) usage;;
 esac
+
+if $reload; then
+	/etc/init.d/nginx reload > /dev/null
+	if [ $? != 0 ]; then
+		echo "Nginx reload failed"
+		exit 1
+	fi
+fi
