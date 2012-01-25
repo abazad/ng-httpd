@@ -109,6 +109,7 @@ chmod 755 /usr/local/nginx/sbin/ng-httpd.sh
 cp -f conf/* /usr/local/nginx/conf/
 mkdir -p /usr/local/nginx/conf/extra
 /usr/local/nginx/sbin/ng-httpd.sh queue
+cp -f logrotate /etc/logrotate.d/nginx
 mkdir -p /usr/local/directadmin/plugins/ng-httpd
 cp -Rf plugin/* /usr/local/directadmin/plugins/ng-httpd/
 chown -R diradmin:diradmin /usr/local/directadmin/plugins/ng-httpd
