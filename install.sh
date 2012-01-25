@@ -90,7 +90,7 @@ cd $CURDIR
 cp initrc-$DISTRO /etc/init.d/nginx
 chmod 750 /etc/init.d/nginx
 if [ $DISTRO == "debian" ]; then
-	update-rc.d nginx defaults
+	update-rc.d nginx defaults > /dev/null
 elif [ $DISTRO == "redhat" ]; then
 	chkconfig --add nginx && chkconfig nginx on
 fi
