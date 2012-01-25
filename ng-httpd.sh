@@ -44,10 +44,10 @@ add() {
 		exit 1
 	fi
 
-	ip=$(grep "ip=" $domconf | cut -d= -f2 | awk '/:/ {$0="["$0"]"} {print}')
+	ip=$(grep "ip=" $domconf | cut -d= -f2)
 	ips=$ip
 	if [ -f $userdir/domains/$domain.ip_list ]; then
-		ips=$(awk '/:/ {$0="["$0"]"} {print}' $userdir/domains/$domain.ip_list)
+		ips=$(cat $userdir/domains/$domain.ip_list)
 	fi
 	ssl=$(grep -ic "ssl=on" $domconf)
 	pro=$(egrep -ic "php=on|cgi=on" $domconf)
@@ -179,7 +179,7 @@ build() {
 
 updateips() {
 	sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g $APCONFDIR/ips.conf
-	ips=$(cat $DAROOTDIR/data/admin/ip.list | awk 'BEGIN {ORS=" "} /:/ {$1="["$1"]"} {print $1}')
+	ips=$(cat $DAROOTDIR/data/admin/ip.list | tr '\n' ' ')
 	sed -i "/RealIPProxy/I c\
 RealIPProxy $ips" $APCONFDIR/extra/httpd-ng.conf
 
