@@ -1,11 +1,34 @@
 #!/bin/bash
 CURDIR=$(cd $(dirname "$0"); pwd)
 PREFIX=/usr/local/nginx
-NGLATEST="nginx-1.0.9"
+LATEST=1.0.11
 OK='\033[01;32m'
 DO='\033[01;35m'
 ER='\033[01;31m'
 RS='\033[0m'
+
+vercomp() {
+	if [ $1 == $2 ]; then
+		return 0
+	fi
+	local gt=$(echo -e "$1\n$2" | sort -t. -k1,1nr -k2,2nr -k3,3nr | head -1)
+	if [ $gt == $1 ]; then
+		return 1
+	fi
+	return 2
+}
+
+checklatest() {
+	if [ ! -f $PREFIX/sbin/nginx ]; then
+		return 1
+	fi
+	local current=$($PREFIX/sbin/nginx -v 2>&1 | egrep -o '[0-9]+(\.[0-9]+)+')
+	vercomp $current $LATEST
+	if [ $? == 2 ]; then
+		return 2
+	fi
+	return 0
+}
 
 echo -ne "Checking for distribution system "
 if [ -f /etc/debian_version ]; then
@@ -26,22 +49,25 @@ else
 	exit 1
 fi
 
-echo -ne "Checking for Nginx installed "
-if [ -f $PREFIX/sbin/nginx ]; then
+checklatest
+E=$?
+echo -ne "Checking for latest Nginx version "
+if [ $E == 0 ]; then
 	echo -e "[$OK OK $RS]"
 else
 	echo -e "[$DO NO $RS]"
 	echo -ne "Downloading Nginx source "
 	cd /usr/local/src
 	rm -rf nginx*
-	wget -q -t 1 -T 5 http://nginx.org/download/nginx-$NGLATEST.tar.gz
+	nglatest=nginx-$LATEST
+	wget -q -t 1 -T 5 http://nginx.org/download/$nglatest.tar.gz
 	if [ $? != 0 ]; then
 		echo -e "[$ER FAIL $RS]"
 		exit 1
 	fi
 	echo -e "[$DO DONE $RS]"
-	tar -xzf $NGLATEST.tar.gz
-	cd $NGLATEST
+	tar -xzf $nglatest.tar.gz
+	cd $nglatest
 	./configure --with-http_ssl_module && make
 	E=$?
 	echo -ne "Building Nginx binary "
