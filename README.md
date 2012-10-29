@@ -1,5 +1,5 @@
 # Nginx frontend for DirectAdmin
-This solution allows you to set up Nginx in front of Apache for all your DireactAdmin-driven virtual hosts. Any domain change made in DA panel will be automatically reflected* on Nginx vhost list.
+This solution allows you to set up Nginx in front of Apache for all your DirectAdmin-driven virtual hosts. Any domain change made in DA panel will be automatically reflected* on Nginx vhost list.
 
 \* ng-httpd control script operates once a minute via crontab, so note on slight delay in changes propagation
 

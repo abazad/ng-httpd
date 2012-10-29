@@ -180,7 +180,8 @@ build() {
 updateips() {
 	sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g $APCONFDIR/ips.conf
 	ips=$(cat $DAROOTDIR/data/admin/ip.list | tr '\n' ' ')
-	sed -i "/RealIPProxy/I c\
+	sed -i -e "/RemoteIPInternalProxy/I c\
+RemoteIPInternalProxy $ips" -e "/RealIPProxy/I c\
 RealIPProxy $ips" $APCONFDIR/extra/httpd-ng.conf
 
 	default=$NGCONFDIR/extra/default.conf

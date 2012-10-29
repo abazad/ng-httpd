@@ -102,25 +102,40 @@ if [ $E != 0 ]; then
 fi
 echo -e "[$DO DONE $RS]"
 
-echo -ne "Checking for mod_realip2 installed "
-if [ -f /usr/lib/apache/mod_realip2.so ]; then
-	echo -e "[$OK OK $RS]"
+av=$(/usr/sbin/httpd -v | egrep -o '[0-9]+(\.[0-9]+)+')
+E=$?
+echo -ne "Checking Apache version "
+if [ $E == 0 ]; then
+	echo -e "[$OK $av $RS]"
 else
-	echo -e "[$DO NO $RS]"
-	cd $CURDIR/dist
-	apxs -ci mod_realip2.c
-	E=$?
-	echo -ne "Installing mod_realip2 "
-	if [ $E != 0 ]; then
-		echo -e "[$ER FAIL $RS]"
-		exit 1
+	echo -e "[$ER FAIL $RS]"
+	exit 1
+fi
+vercomp $av 2.4
+if [ $? == 2 ]; then
+	ac=22
+	echo -ne "Checking for mod_realip2 installed "
+	if [ -f /usr/lib/apache/mod_realip2.so ]; then
+		echo -e "[$OK OK $RS]"
+	else
+		echo -e "[$DO NO $RS]"
+		cd $CURDIR/dist
+		apxs -ci mod_realip2.c
+		E=$?
+		echo -ne "Installing mod_realip2 "
+		if [ $E != 0 ]; then
+			echo -e "[$ER FAIL $RS]"
+			exit 1
+		fi
+		echo -e "[$DO DONE $RS]"
 	fi
-	echo -e "[$DO DONE $RS]"
+else
+	ac=24
 fi
 
 echo -ne "Enabling extra config "
 cd /etc/httpd/conf
-sed -i -e /rpaf/Id -e /realip/Id -e /httpd-ng/d httpd.conf
+sed -i -e /rpaf/Id -e /realip/Id -e /remoteip/Id -e /httpd-ng/d httpd.conf
 echo "Include conf/extra/httpd-ng.conf" >> httpd.conf
 if [ $? != 0 ]; then
 	echo -e "[$ER FAIL $RS]"
@@ -130,7 +145,7 @@ echo -e "[$DO DONE $RS]"
 
 echo -ne "Copying new files "
 cd $CURDIR
-cp -f httpd-ng.conf /etc/httpd/conf/extra/
+cp -f httpd-ng-$ac.conf /etc/httpd/conf/extra/httpd-ng.conf
 cp -f ng-httpd.sh $PREFIX/sbin/
 chmod 755 $PREFIX/sbin/ng-httpd.sh
 cp -f conf/* $PREFIX/conf/
