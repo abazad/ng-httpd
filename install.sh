@@ -1,7 +1,9 @@
 #!/bin/bash
 CURDIR=$(cd $(dirname "$0"); pwd)
 PREFIX=/usr/local/nginx
-LATEST=1.0.11
+BRANCH=1.2
+WGET="wget -q -t 1 -T 5"
+REV='[0-9]+(\.[0-9]+)+'
 OK='\033[01;32m'
 DO='\033[01;35m'
 ER='\033[01;31m'
@@ -16,18 +18,6 @@ vercomp() {
 		return 1
 	fi
 	return 2
-}
-
-checklatest() {
-	if [ ! -f $PREFIX/sbin/nginx ]; then
-		return 1
-	fi
-	local current=$($PREFIX/sbin/nginx -v 2>&1 | egrep -o '[0-9]+(\.[0-9]+)+')
-	vercomp $current $LATEST
-	if [ $? == 2 ]; then
-		return 2
-	fi
-	return 0
 }
 
 echo -ne "Checking for distribution system "
@@ -49,18 +39,71 @@ else
 	exit 1
 fi
 
-checklatest
+ver=$(/usr/sbin/httpd -v | egrep -o $REV)
 E=$?
-echo -ne "Checking for latest Nginx version "
+echo -ne "Detecting Apache version "
 if [ $E == 0 ]; then
-	echo -e "[$OK OK $RS]"
+	echo -e "[$OK $ver $RS]"
 else
-	echo -e "[$DO NO $RS]"
+	echo -e "[$ER FAIL $RS]"
+	exit 1
+fi
+vercomp $ver 2.4
+if [ $? == 2 ]; then
+	apver=22
+	echo -ne "Checking for mod_realip2 installed "
+	if [ -f /usr/lib/apache/mod_realip2.so ]; then
+		echo -e "[$OK OK $RS]"
+	else
+		echo -e "[$DO NO $RS]"
+		cd $CURDIR/dist
+		apxs -ci mod_realip2.c
+		E=$?
+		echo -ne "Installing mod_realip2 "
+		if [ $E != 0 ]; then
+			echo -e "[$ER FAIL $RS]"
+			exit 1
+		fi
+		echo -e "[$DO DONE $RS]"
+	fi
+else
+	apver=24
+fi
+
+inst=true
+ver=$($PREFIX/sbin/nginx -v 2>&1 | egrep -o $REV)
+E=$?
+echo -ne "Detecting Nginx version "
+if [ $E == 0 ]; then
+	vercomp $ver $BRANCH
+	if [ $? == 2 ]; then
+		st=$DO
+	else
+		st=$OK
+		inst=false
+	fi
+	echo -e "[$st $ver $RS]"
+else
+	echo -e "[$DO NONE $RS]"
+fi
+
+if $inst; then
+	file=nginx.h
+	latest=$BRANCH.0
+	$WGET -O $file "http://trac.nginx.org/nginx/browser/nginx/branches\
+/stable-$BRANCH/src/core/$file?format=txt"
+	if [ $? == 0 ]; then
+		tmp=$(egrep -o $REV $file)
+		if [[ $? == 0 && "$tmp" == "$BRANCH."* ]]; then
+			latest=$tmp
+		fi
+		rm -f $file
+	fi
 	echo -ne "Downloading Nginx source "
 	cd /usr/local/src
 	rm -rf nginx*
-	nglatest=nginx-$LATEST
-	wget -q -t 1 -T 5 http://nginx.org/download/$nglatest.tar.gz
+	nglatest=nginx-$latest
+	$WGET http://nginx.org/download/$nglatest.tar.gz
 	if [ $? != 0 ]; then
 		echo -e "[$ER FAIL $RS]"
 		exit 1
@@ -102,37 +145,6 @@ if [ $E != 0 ]; then
 fi
 echo -e "[$DO DONE $RS]"
 
-av=$(/usr/sbin/httpd -v | egrep -o '[0-9]+(\.[0-9]+)+')
-E=$?
-echo -ne "Checking Apache version "
-if [ $E == 0 ]; then
-	echo -e "[$OK $av $RS]"
-else
-	echo -e "[$ER FAIL $RS]"
-	exit 1
-fi
-vercomp $av 2.4
-if [ $? == 2 ]; then
-	ac=22
-	echo -ne "Checking for mod_realip2 installed "
-	if [ -f /usr/lib/apache/mod_realip2.so ]; then
-		echo -e "[$OK OK $RS]"
-	else
-		echo -e "[$DO NO $RS]"
-		cd $CURDIR/dist
-		apxs -ci mod_realip2.c
-		E=$?
-		echo -ne "Installing mod_realip2 "
-		if [ $E != 0 ]; then
-			echo -e "[$ER FAIL $RS]"
-			exit 1
-		fi
-		echo -e "[$DO DONE $RS]"
-	fi
-else
-	ac=24
-fi
-
 echo -ne "Enabling extra config "
 cd /etc/httpd/conf
 sed -i -e /rpaf/Id -e /realip/Id -e /remoteip/Id -e /httpd-ng/d httpd.conf
@@ -145,7 +157,7 @@ echo -e "[$DO DONE $RS]"
 
 echo -ne "Copying new files "
 cd $CURDIR
-cp -f httpd-ng-$ac.conf /etc/httpd/conf/extra/httpd-ng.conf
+cp -f httpd-ng-$apver.conf /etc/httpd/conf/extra/httpd-ng.conf
 cp -f ng-httpd.sh $PREFIX/sbin/
 chmod 755 $PREFIX/sbin/ng-httpd.sh
 cp -f conf/* $PREFIX/conf/
