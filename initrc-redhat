@@ -1,116 +1,108 @@
 #!/bin/sh
 #
-# nginx - this script starts and stops the nginx daemin
+# nginx Start and stop nginx
 #
-# chkconfig:   - 85 15 
-# description:  Nginx is an HTTP(S) server, HTTP(S) reverse \
-#               proxy and IMAP/POP3 proxy server
-# processname: nginx
-# config:      /etc/sysconfig/nginx
-# pidfile:     /usr/local/nginx/logs/nginx.pid
+# chkconfig: 2345 80 20
+# description: Nginx server
 
-# Source function library.
+### BEGIN INIT INFO
+# Provides: nginx
+# Required-Start: $remote_fs $network
+# Required-Stop: $remote_fs $network
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start and stop nginx
+### END INIT INFO
+
+prog=nginx
+base=/usr/local/nginx
+exec=$base/sbin/nginx
+pidfile=$base/logs/$prog.pid
+lockfile=/var/lock/subsys/$prog
+retval=0
+
+[ -x $exec ] || exit 5
+
+[ -e /etc/sysconfig/$prog ] && . /etc/sysconfig/$prog
+
 . /etc/rc.d/init.d/functions
 
-# Source networking configuration.
-. /etc/sysconfig/network
-
-# Check that networking is up.
-[ "$NETWORKING" = "no" ] && exit 0
-
-nginx="/usr/local/nginx/sbin/nginx"
-prog=$(basename $nginx)
-
-[ -f /etc/sysconfig/nginx ] && . /etc/sysconfig/nginx
-
-lockfile=/var/lock/subsys/nginx
+configtest() {
+	res=$($exec -t 2>&1)
+	retval=$?
+	if [ -z "$1" ]; then
+		res="\n$res"
+	fi
+	if [ -n "$1" ] || [ $retval != 0 ]; then
+		echo -ne "$res"
+	fi
+	return $retval
+}
 
 start() {
-    [ -x $nginx ] || exit 5
-    [ -f $NGINX_CONF_FILE ] || exit 6
-    echo -n $"Starting $prog: "
-    daemon $nginx
-    retval=$?
-    echo
-    [ $retval -eq 0 ] && touch $lockfile
-    return $retval
+	daemon --pidfile=$pidfile $exec
+	retval=$?
+	[ $retval == 0 ] && touch $lockfile
+	return $retval
 }
 
 stop() {
-    echo -n $"Stopping $prog: "
-    killproc $prog -QUIT
-    retval=$?
-    if [ $retval -eq 0 ]; then
-        if [ "$CONSOLETYPE" != "serial" ]; then
-           echo -en "\\033[16G"
-        fi
-        while rh_status_q
-        do
-            sleep 1
-            echo -n $"."
-        done
-        rm -f $lockfile
-    fi
-    echo
-    return $retval
+	killproc -p $pidfile $prog
+	retval=$?
+	[ $retval = 0 ] && rm -f $lockfile
+	return $retval
+}
+
+stat() {
+	res=$(status -p $pidfile $prog 2>&1)
+	retval=$?
+	[ -n "$1" ] && echo $res
+	return $retval
 }
 
 restart() {
-    configtest || return $?
-    stop
-    start
-}
-
-reload() {
-    configtest || return $?
-    echo -n $"Reloading $prog: "
-    killproc $nginx -HUP
-    RETVAL=$?
-    echo
-}
-
-force_reload() {
-    restart
-}
-
-configtest() {
-  $nginx -t
-}
-
-rh_status() {
-    status $prog
-}
-
-rh_status_q() {
-    rh_status >/dev/null 2>&1
+	echo -n "Restarting $prog: "
+	configtest && stop && start
+	echo
 }
 
 case "$1" in
-    start)
-        rh_status_q && exit 0
-        $1
-        ;;
-    stop)
-        rh_status_q || exit 0
-        $1
-        ;;
-    restart|configtest)
-        $1
-        ;;
-    reload)
-        rh_status_q || exit 7
-        $1
-        ;;
-    force-reload)
-        force_reload
-        ;;
-    status)
-        rh_status
-        ;;
-    condrestart|try-restart)
-        rh_status_q || exit 0
-	    ;;
-    *)
-        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload|configtest}"
-        exit 2
+	start)
+		stat && exit 0
+		echo -n "Starting $prog: "
+		start
+		echo
+		;;
+	stop)
+		stat || exit 0
+		echo -n "Stopping $prog: "
+		stop
+		echo
+		;;
+	restart|force-reload)
+		restart
+		;;
+	condrestart|try-restart)
+		stat || exit 0
+		restart
+		;;
+	reload)
+		stat || exit 7
+		echo -n "Reloading $prog: "
+		configtest && killproc -p $pidfile $prog -HUP
+		retval=$?
+		echo
+		;;
+	status)
+		stat 1
+		;;
+	configtest)
+		configtest 1
+		echo
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|condrestart|try-restart|reload|force-reload|status|configtest}" >&2
+		retval=2
 esac
+
+exit $retval
