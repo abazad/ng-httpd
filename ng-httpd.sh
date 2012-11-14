@@ -240,6 +240,7 @@ enable() {
 	echo 'echo "delete $username" >> /usr/local/nginx/sbin/queue' >> user_destroy_post.sh
 	echo 'echo "build $username" >> /usr/local/nginx/sbin/queue' >> ip_change_post.sh
 	echo 'echo "updateips" >> /usr/local/nginx/sbin/queue' >> ipsconf_write_post.sh
+	echo '/etc/init.d/nginx flushlogs' >> tally_rotation_post.sh
 
 	cat >> user_httpd_write_post.sh <<EOF
 $MARKER_START
