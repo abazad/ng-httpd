@@ -19,6 +19,10 @@ You could easily on/off Nginx frontend in DA web interface `your-domain:2222/CMD
 
 There is no necessity to interact with control script normally. But if you really need, you could =) Call `/usr/local/nginx/sbin/ng-httpd.sh` with no arguments to get usage notes.
 
+## License
+Released under the [MIT license]
+
 [Debian-based]: http://en.wikipedia.org/wiki/List_of_Linux_distributions#Debian-based
 [RHEL-based]: http://en.wikipedia.org/wiki/List_of_Linux_distributions#Red_Hat_Enterprise_Linux-based
 [DirectAdmin]: http://www.directadmin.com/
+[MIT license]: https://bitbucket.org/alexeyworld/ng-httpd/src/tip/LICENSE
