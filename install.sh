@@ -51,15 +51,24 @@ fi
 vercomp $ver 2.4
 if [ $? == 2 ]; then
 	apver=22
-	echo -ne "Checking for mod_realip2 installed "
-	if [ -f /usr/lib/apache/mod_realip2.so ]; then
+	mod=mod_realip2
+	echo -ne "Checking for $mod installed "
+	if [ -f /usr/lib/apache/$mod.so ]; then
 		echo -e "[$OK OK $RS]"
 	else
 		echo -e "[$DO NO $RS]"
-		cd $CURDIR/dist
-		apxs -ci mod_realip2.c
+		echo -ne "Downloading $mod source "
+		cd /usr/local/src
+		mkdir -p $mod && cd $mod
+		$WGET -O $mod.c https://github.com/discont/$mod/raw/master/$mod.c
+		if [ $? != 0 ]; then
+			echo -e "[$ER FAIL $RS]"
+			exit 1
+		fi
+		echo -e "[$DO DONE $RS]"
+		apxs -ci $mod.c
 		E=$?
-		echo -ne "Installing mod_realip2 "
+		echo -ne "Installing $mod "
 		if [ $E != 0 ]; then
 			echo -e "[$ER FAIL $RS]"
 			exit 1
