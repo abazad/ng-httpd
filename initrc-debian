@@ -78,8 +78,14 @@ case "$1" in
 	configtest)
 		configtest 1
 		;;
+	flushlogs)
+		log_daemon_msg "Flushing $DESC logs" "$NAME"
+		start-stop-daemon --stop --signal USR1 --quiet --pidfile $PIDFILE
+		RETVAL=$?
+		log_end_msg $RETVAL
+		;;
 	*)
-		echo "Usage: $0 {start|stop|restart|reload|force-reload|status|configtest}" >&2
+		echo "Usage: $0 {start|stop|restart|reload|force-reload|status|configtest|flushlogs}" >&2
 		RETVAL=2
 		;;
 esac

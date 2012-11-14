@@ -100,9 +100,17 @@ case "$1" in
 		configtest 1
 		echo
 		;;
+	flushlogs)
+		stat || exit 7
+		echo -n "Flushing $prog logs: "
+		killproc -p $pidfile $prog -USR1
+		retval=$?
+		echo
+		;;
 	*)
-		echo "Usage: $0 {start|stop|restart|condrestart|try-restart|reload|force-reload|status|configtest}" >&2
+		echo "Usage: $0 {start|stop|restart|condrestart|try-restart|reload|force-reload|status|configtest|flushlogs}" >&2
 		retval=2
+		;;
 esac
 
 exit $retval

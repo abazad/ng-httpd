@@ -1,10 +1,10 @@
 /usr/local/nginx/logs/*.log {
-	daily
-	rotate 7
+	weekly
+	rotate 12
 	compress
 	delaycompress
 	notifempty
 	lastaction
-		kill -USR1 `cat /usr/local/nginx/logs/nginx.pid`
+		/etc/init.d/nginx flushlogs
 	endscript
 }
