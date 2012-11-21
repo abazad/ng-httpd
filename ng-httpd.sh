@@ -100,8 +100,8 @@ add() {
 	resconf=$NGCONFDIR/vhost/$user-$domain.conf
 
 	sed -e s/ADDR/$ip/g -e s/PORT_SSL/$INTPORT_SSL/g -e s/PORT/$INTPORT/g \
-		-e s/DOMAIN/$domain/g -e s/DOMLOG/$domain/g -e s/ALIAS/"$alias"/g \
 		-e s/DOCROOT_SSL/"${docroot_ssl//\//\/}"/g -e s/DOCROOT/"${docroot//\//\/}"/g \
+		-e s/USER/$user/g -e s/DOMAIN/$domain/g -e s/DOMLOG/$domain/g -e s/ALIAS/"$alias"/g \
 		-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy//\//\/}"/g -e s/SSL/"${sslconf//\//\/}"/g \
 		$NGCONFDIR/domain.conf > $resconf
 
@@ -156,7 +156,7 @@ build() {
 
 	mkdir -p $NGCONFDIR/vhost
 	if [ -z $user ]; then
-		rm -rf $NGCONFDIR/vhost/*
+		rm -rf $NGCONFDIR/vhost/*.conf
 		userlist=$(ls -1 $DAUSERDIR)
 	else
 		delete $user
