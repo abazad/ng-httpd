@@ -5,7 +5,7 @@ This solution allows you to set up Nginx in front of Apache for all your DirectA
 
 ## Requirements
 - [Debian-based] or [RHEL-based] linux distro
-- [DirectAdmin] 1.37+
+- [DirectAdmin] 1.37+ with Apache 2.2/2.4
 
 ## Installation
 Simply run as root:

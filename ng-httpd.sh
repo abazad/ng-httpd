@@ -6,8 +6,7 @@ DAROOTDIR=/usr/local/directadmin
 DAUSERDIR=$DAROOTDIR/data/users
 DATEMPDIR=$DAROOTDIR/data/templates
 DAQUEUE=$DAROOTDIR/data/task.queue
-TEMPLATES="virtual_host virtual_host_sub virtual_host_secure virtual_host_secure_sub \
-	virtual_host2 virtual_host2_sub virtual_host2_secure virtual_host2_secure_sub \
+TEMPLATES="virtual_host2 virtual_host2_sub virtual_host2_secure virtual_host2_secure_sub \
 	ips_virtual_host redirect_virtual_host"
 SCRIPTS="domain_create_post domain_destroy_post domain_change_post \
 	subdomain_create_post subdomain_destroy_post \
