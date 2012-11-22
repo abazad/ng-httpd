@@ -95,7 +95,7 @@ add() {
 
 	proxy=""
 	if [ $pro -gt 0 ]; then
-		proxy="proxy_pass http://$ip:\$iport;"
+		proxy="proxy_pass http://$ip:\$port;"
 	fi
 
 	resconf=$NGCONFDIR/vhost/$user-$domain.conf
@@ -211,6 +211,9 @@ enable() {
 	do
 		if [ ! -f custom/$tpl.conf ]; then
 			cp $tpl.conf custom/
+		fi
+		if [[ "$tpl" == *_secure* ]]; then
+			sed -i 's/ServerName\s\+\(https\?:\/\/\)\?/ServerName https:\/\//Ig' custom/$tpl.conf
 		fi
 		sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g \
 			-e "/CustomLog/I $ln_off" -e "/SSLEngine/I $ln_off" custom/$tpl.conf
