@@ -21,6 +21,8 @@ INTPORT=8888
 EXTPORT_SSL=443
 INTPORT_SSL=8889
 
+ln_off='s/^\(\s*\)#*\s*/\1#/'
+ln_on='s/^\(\s*\)#*\s*/\1/'
 reload=false
 
 add() {
@@ -211,7 +213,7 @@ enable() {
 			cp $tpl.conf custom/
 		fi
 		sed -i -e s/:$EXTPORT/:$INTPORT/g -e s/:$EXTPORT_SSL/:$INTPORT_SSL/g \
-			-e "/CustomLog/I s/^\s*#*\s*/#/" -e "/SSLEngine/I s/^\s*#*\s*/#/" custom/$tpl.conf
+			-e "/CustomLog/I $ln_off" -e "/SSLEngine/I $ln_off" custom/$tpl.conf
 	done
 
 	cd $DAROOTDIR/scripts/custom
@@ -262,8 +264,8 @@ EOF
 		exit 1
 	fi
 
-	sed -i -e s/$EXTPORT/$INTPORT/g -e "/httpd-ng/ s/^\s*#*\s*//" $APCONFDIR/httpd.conf
-	sed -i -e s/$EXTPORT_SSL/$INTPORT_SSL/g -e "/SSLEngine/I s/^\s*#*\s*/#/" $APCONFDIR/extra/httpd-ssl.conf
+	sed -i -e s/$EXTPORT/$INTPORT/g -e "/httpd-ng/ $ln_on" $APCONFDIR/httpd.conf
+	sed -i -e s/$EXTPORT_SSL/$INTPORT_SSL/g -e "/SSLEngine/I $ln_off" $APCONFDIR/extra/httpd-ssl.conf
 	sed -i 's/KeepAlive\s\+On/KeepAlive Off/Ig' $APCONFDIR/extra/httpd-default.conf
 
 	updateips
@@ -294,7 +296,7 @@ disable() {
 		do
 			if [ -f $tpl.conf ]; then
 				sed -i -e s/:$INTPORT/:$EXTPORT/g -e s/:$INTPORT_SSL/:$EXTPORT_SSL/g \
-					-e "/CustomLog/I s/^\s*#*\s*//" -e "/SSLEngine/I s/^\s*#*\s*//" $tpl.conf
+					-e "/CustomLog/I $ln_on" -e "/SSLEngine/I $ln_on" $tpl.conf
 			fi
 		done
 	fi
@@ -307,8 +309,8 @@ disable() {
 		fi
 	done
 
-	sed -i -e s/$INTPORT/$EXTPORT/g -e "/httpd-ng/ s/^\s*#*\s*/#/" $APCONFDIR/httpd.conf
-	sed -i -e s/$INTPORT_SSL/$EXTPORT_SSL/g -e "/SSLEngine/I s/^\s*#*\s*//" $APCONFDIR/extra/httpd-ssl.conf
+	sed -i -e s/$INTPORT/$EXTPORT/g -e "/httpd-ng/ $ln_off" $APCONFDIR/httpd.conf
+	sed -i -e s/$INTPORT_SSL/$EXTPORT_SSL/g -e "/SSLEngine/I $ln_on" $APCONFDIR/extra/httpd-ssl.conf
 	sed -i 's/KeepAlive\s\+Off/KeepAlive On/Ig' $APCONFDIR/extra/httpd-default.conf
 
 	echo "action=rewrite&value=ips" >> $DAQUEUE
