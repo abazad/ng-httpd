@@ -95,15 +95,15 @@ add() {
 
 	proxy=""
 	if [ $pro -gt 0 ]; then
-		proxy="proxy_pass http://$ip:\$port;"
+		proxy="return 418;"
 	fi
 
 	resconf=$NGCONFDIR/vhost/$user-$domain.conf
 
 	sed -e s/ADDR/$ip/g -e s/PORT_SSL/$INTPORT_SSL/g -e s/PORT/$INTPORT/g \
 		-e s/DOCROOT_SSL/"${docroot_ssl//\//\/}"/g -e s/DOCROOT/"${docroot//\//\/}"/g \
+		-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy}"/g -e s/SSL/"${sslconf//\//\/}"/g \
 		-e s/USER/$user/g -e s/DOMAIN/$domain/g -e s/DOMLOG/$domain/g -e s/ALIAS/"$alias"/g \
-		-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy//\//\/}"/g -e s/SSL/"${sslconf//\//\/}"/g \
 		$NGCONFDIR/domain.conf > $resconf
 
 	if [ -f $userdir/domains/$domain.subdomains ]; then
