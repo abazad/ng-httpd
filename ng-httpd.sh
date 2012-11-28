@@ -103,8 +103,8 @@ add() {
 	sed -e s/ADDR/$ip/g -e s/PORT_SSL/$INTPORT_SSL/g -e s/PORT/$INTPORT/g \
 		-e s/DOCROOT_SSL/"${docroot_ssl//\//\/}"/g -e s/DOCROOT/"${docroot//\//\/}"/g \
 		-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy}"/g -e s/SSL/"${sslconf//\//\/}"/g \
-		-e s/USER/$user/g -e s/DOMAIN/$domain/g -e s/DOMLOG/$domain/g -e s/ALIAS/"$alias"/g \
-		$NGCONFDIR/domain.conf > $resconf
+		-e s/USER/$user/g -e s/DOMAIN/$domain/g -e s/DOMLOG/$domain/g \
+		-e s/ALIAS/"$alias"/g $NGCONFDIR/domain.conf > $resconf
 
 	if [ -f $userdir/domains/$domain.subdomains ]; then
 		for sub in $(cat $userdir/domains/$domain.subdomains)
@@ -118,10 +118,10 @@ add() {
 			done
 
 			sed -e s/ADDR/$ip/g -e s/PORT_SSL/$INTPORT_SSL/g -e s/PORT/$INTPORT/g \
-				-e s/DOMAIN/$sub.$domain/g -e s/DOMLOG/$domain.$sub/g -e s/ALIAS/"$subalias"/g \
 				-e s/DOCROOT_SSL/"${subdocroot_ssl//\//\/}"/g -e s/DOCROOT/"${subdocroot//\//\/}"/g \
-				-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy//\//\/}"/g -e s/SSL/"${sslconf//\//\/}"/g \
-				$NGCONFDIR/domain.conf >> $resconf
+				-e s/LISTEN/"$listen"/g -e s/PROXY/"${proxy}"/g -e s/SSL/"${sslconf//\//\/}"/g \
+				-e s/USER/$user/g -e s/DOMAIN/$sub.$domain/g -e s/DOMLOG/$domain.$sub/g \
+				-e s/ALIAS/"$subalias"/g $NGCONFDIR/domain.conf >> $resconf
 		done
 	fi
 
@@ -364,7 +364,7 @@ case $cmd in
 	"disable"	) disable;;
 	"updateips"	) updateips;;
 	"queue"		) queue;;
-	*			) usage;;
+	*		) usage;;
 esac
 
 if $reload; then
