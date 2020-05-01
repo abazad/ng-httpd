@@ -10,8 +10,7 @@ This solution allows you to set up Nginx in front of Apache for all your DirectA
 ## Installation
 Simply run as root:
 
-	:::shell
-	hg clone https://bitbucket.org/alexeyworld/ng-httpd
+	git clone https://github.com/rakeev/ng-httpd
 	cd ng-httpd && ./install.sh
 
 ## Management
@@ -25,4 +24,4 @@ Released under the [MIT license]
 [Debian-based]: http://en.wikipedia.org/wiki/List_of_Linux_distributions#Debian-based
 [RHEL-based]: http://en.wikipedia.org/wiki/List_of_Linux_distributions#Red_Hat_Enterprise_Linux-based
 [DirectAdmin]: http://www.directadmin.com/
-[MIT license]: https://bitbucket.org/alexeyworld/ng-httpd/src/tip/LICENSE
+[MIT license]: https://github.com/rakeev/ng-httpd/blob/master/LICENSE
